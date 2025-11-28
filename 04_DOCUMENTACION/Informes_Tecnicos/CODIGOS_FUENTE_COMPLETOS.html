@@ -1,0 +1,1494 @@
+
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <title>Códigos Fuente - Proyecto Deep Learning</title>
+        
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&family=Fira+Code&display=swap');
+    
+    body { 
+        font-family: 'Roboto', sans-serif; 
+        line-height: 1.5; 
+        color: #333; 
+        max-width: 900px; 
+        margin: 0 auto; 
+        padding: 40px;
+    }
+    
+    @media print {
+        body { max-width: 100%; padding: 20px; }
+        .no-print { display: none; }
+        a { text-decoration: none; color: #333; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    }
+    
+    h1 { color: #1a237e; border-bottom: 2px solid #1a237e; padding-bottom: 10px; margin-top: 50px; page-break-after: avoid; }
+    h2 { color: #283593; margin-top: 40px; border-left: 5px solid #283593; padding-left: 15px; page-break-after: avoid; }
+    .desc { color: #666; font-style: italic; margin-bottom: 20px; }
+    
+    .code-container {
+        background-color: #f8f9fa;
+        border: 1px solid #e0e0e0;
+        border-radius: 5px;
+        padding: 15px;
+        margin-bottom: 30px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    pre {
+        margin: 0;
+        font-family: 'Fira Code', 'Consolas', 'Monaco', monospace;
+        font-size: 0.85em;
+        overflow-x: auto;
+    }
+    
+    .page-break { page-break-before: always; }
+    
+    .cover { text-align: center; margin-top: 200px; margin-bottom: 200px; }
+    .cover h1 { border: none; font-size: 3em; color: #1a237e; margin-bottom: 20px; }
+    .cover h2 { color: #555; font-weight: 300; font-size: 1.5em; border: none; padding: 0; }
+    
+    .toc { background: #f5f5f5; padding: 30px; border-radius: 8px; margin: 40px 0; }
+    .toc ul { list-style: none; padding: 0; }
+    .toc li { margin: 10px 0; }
+    .toc a { text-decoration: none; color: #1a237e; font-weight: 500; }
+    
+    .footer { text-align: center; margin-top: 50px; font-size: 0.8em; color: #999; border-top: 1px solid #eee; padding-top: 20px; }
+    
+    /* Simple Syntax Highlighting */
+    .kw { color: #0000ff; font-weight: bold; } /* Keyword */
+    .str { color: #a31515; } /* String */
+    .com { color: #008000; } /* Comment */
+    .num { color: #098658; } /* Number */
+</style>
+
+    </head>
+    <body>
+        
+    <div class="cover">
+        <h1>Códigos Fuente del Proyecto</h1>
+        <h2>Sistema de Predicción de Demanda con LSTM</h2>
+        <div style="margin-top: 50px; color: #777;">
+            <p>Compendio de Scripts Python</p>
+            <p>November 2025</p>
+        </div>
+    </div>
+    <div class="page-break"></div>
+    
+    <div class="toc">
+        <h2>Índice de Scripts</h2>
+        <ul>
+    <li><a href="#script-1">1. Script Principal (Conversión del Cuaderno)</a></li><li><a href="#script-2">2. Análisis Completo de Datos</a></li><li><a href="#script-3">3. Generador de Predicciones Reales</a></li><li><a href="#script-4">4. Ejemplo de Uso</a></li><li><a href="#script-5">5. Predicción Simple</a></li>
+        </ul>
+    </div>
+    <div class="page-break"></div>
+    
+            <div id="script-1">
+                <h2>1. Script Principal (Conversión del Cuaderno)</h2>
+                <p class="desc">Lógica principal de entrenamiento, optimización y generación de modelos.</p>
+                <p style="font-family: monospace; background: #eee; padding: 5px; display: inline-block;">Archivo: fase_final_red_neuronal_converted.py</p>
+                
+                <div class="code-container">
+                    <pre><code><span class="com"># !pip install keras_tuner</span>
+
+<span class="com"># @title 1- Cargue de libreias</span>
+import matplotlib
+matplotlib.use(&<span class="com">#x27;Agg&#x27;)  # Use non-interactive backend</span>
+import tensorflow as tf
+import datetime
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
+import plotly.express as px
+from scipy import stats
+from scipy.signal import periodogram
+from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
+from scipy.stats import entropy
+from sklearn.metrics import r2_score
+from statsmodels.tsa.seasonal import seasonal_decompose
+from statsmodels.tsa.stattools import grangercausalitytests
+from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.graphics.tsaplots import plot_predict
+
+from sklearn.datasets import load_breast_cancer
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from tensorflow import keras
+from keras import layers
+import keras_tuner as kt
+import math
+
+
+<span class="com"># Limpiar directorio de resultados</span>
+import shutil
+shutil.rmtree(&<span class="com">#x27;tuning_results/hyperband_tuning&#x27;, ignore_errors=True)</span>
+shutil.rmtree(&<span class="com">#x27;tuning_results/random_search_tuning&#x27;, ignore_errors=True)</span>
+shutil.rmtree(&<span class="com">#x27;tuning_results/bayesian_optimization_tuning&#x27;, ignore_errors=True)</span>
+shutil.rmtree(&<span class="com">#x27;my_dir&#x27;, ignore_errors=True)</span>
+shutil.rmtree(&<span class="com">#x27;my_dir_hyperband&#x27;, ignore_errors=True)</span>
+
+<span class="com"># @title 2- Cargar data set limpia</span>
+url = &quot;https://github.com/OscarT231/Proyecto-deep-/raw/refs/heads/main/Base_filtrada.xlsx&quot;
+df = pd.read_excel(url)
+
+
+<span class="com"># @title 2.1 Eliminar columnas</span>
+df.columns = df.columns.astype(str).str.strip()
+columnas_deseadas = [
+    &quot;bodega&quot;, &quot;producto&quot;, &quot;calificacion_abc&quot;,
+    &quot;2024-09-01 00:00:00&quot;,&quot;2024-10-01 00:00:00&quot;,&quot;2024-11-01 00:00:00&quot;,&quot;2024-12-01 00:00:00&quot;,
+    &quot;2025-01-01 00:00:00&quot;,&quot;2025-02-01 00:00:00&quot;,&quot;2025-03-01 00:00:00&quot;,&quot;2025-04-01 00:00:00&quot;,
+    &quot;2025-05-01 00:00:00&quot;,&quot;2025-06-01 00:00:00&quot;,&quot;2025-07-01 00:00:00&quot;,&quot;2025-08-01 00:00:00&quot;
+]
+
+df_sugerido = df[[col for col in columnas_deseadas if col in df.columns]].copy()
+df_sugerido = df_sugerido[~df_sugerido[&quot;calificacion_abc&quot;].isin([&quot;O&quot;, &quot;N&quot;])].copy()
+df_sugerido.head()
+
+df= df_sugerido
+
+<span class="com">#@title 2.2 Ajustar el dataset para formato LSTM</span>
+<span class="com"># Identificar columnas de fecha (todas excepto bodega, producto, calificación)</span>
+id_cols = [&quot;bodega&quot;, &quot;producto&quot;, &quot;calificacion_abc&quot;]
+date_cols = [c for c in df.columns if c not in id_cols]
+
+<span class="com"># Convertir wide → long</span>
+df_long = df.melt(id_vars=id_cols,
+                  value_vars=date_cols,
+                  var_name=&quot;fecha&quot;,
+                  value_name=&quot;stock_solicitado&quot;)
+
+<span class="com"># Convertir fecha a datetime (formato dd/mm/yyyy)</span>
+df_long[&<span class="com">#x27;fecha&#x27;] = pd.to_datetime(df_long[&#x27;fecha&#x27;])</span>
+
+<span class="com"># Ordenar correctamente</span>
+df_long = df_long.sort_values([&quot;bodega&quot;, &quot;producto&quot;, &quot;fecha&quot;])
+
+df_long.head()
+
+&quot;&quot;&quot;
+- Se crearán dos bases de datos para los productos top y media categoría
+- Se analizarán las bodegas como una sola para después de entrenar y tener el modelo
+    utilizar probabilidad (muestreo estratificado) para decidir cuantas unidades van a cada bodega
+&quot;&quot;&quot;
+<span class="com"># @title 2.3 creación de los dos dataset</span>
+<span class="com">#df del producto A</span>
+df_A = df_long[df_long[&<span class="com">#x27;producto&#x27;].isin([&#x27;P9933&#x27;])].dropna().reset_index(drop=True)</span>
+
+
+
+<span class="com">#df del producto B</span>
+df_B = df_long[df_long[&<span class="com">#x27;producto&#x27;].isin([&#x27;P2417&#x27;])]</span>
+
+
+
+df_A[&quot;fecha&quot;] = pd.to_datetime(df_A[&quot;fecha&quot;])
+df_B[&quot;fecha&quot;] = pd.to_datetime(df_B[&quot;fecha&quot;])
+
+df_A.head()
+
+<span class="com">#@title 3- Creación de diccionarios</span>
+<span class="com">#DICCIONARIO A</span>
+dict_A = {}
+
+for b in df_A[&quot;bodega&quot;].unique():
+    df_b = df_A[df_A[&quot;bodega&quot;] == b][[&quot;fecha&quot;, &quot;stock_solicitado&quot;]].copy()
+    df_b = df_b.sort_values(&quot;fecha&quot;)
+
+    <span class="com"># Saltar bodegas sin registros útiles</span>
+    if df_b[&quot;stock_solicitado&quot;].sum() == 0:
+        continue
+
+    dict_A[b] = df_b
+
+<span class="com"># DICCIONARIO B</span>
+dict_B = {}
+
+for b in df_B[&quot;bodega&quot;].unique():
+    df_b = df_B[df_B[&quot;bodega&quot;] == b][[&quot;fecha&quot;, &quot;stock_solicitado&quot;]].copy()
+    df_b = df_b.sort_values(&quot;fecha&quot;)
+
+    if df_b[&quot;stock_solicitado&quot;].sum() == 0:
+        continue
+
+    dict_B[b] = df_b
+
+<span class="com">#@title 4- Normalizar diccionario</span>
+<span class="com">#DICCIONARIO A</span>
+from sklearn.preprocessing import MinMaxScaler
+
+dict_A_norm = {}
+dict_A_scalers = {}
+
+for b, df_b in dict_A.items():
+    scaler = MinMaxScaler()
+
+    df_b_norm = df_b.copy()
+    df_b_norm[&quot;stock_solicitado_s&quot;] = scaler.fit_transform(df_b[[&quot;stock_solicitado&quot;]])
+
+    dict_A_norm[b] = df_b_norm
+    dict_A_scalers[b] = scaler
+
+<span class="com">#DICCIONARIO B</span>
+dict_B_norm = {}
+dict_B_scalers = {}
+
+for b, df_b in dict_B.items():
+    scaler = MinMaxScaler()
+
+    df_b_norm = df_b.copy()
+    df_b_norm[&quot;stock_solicitado_s&quot;] = scaler.fit_transform(df_b[[&quot;stock_solicitado&quot;]])
+
+    dict_B_norm[b] = df_b_norm
+    dict_B_scalers[b] = scaler
+
+dict_A_norm[&quot;BDG-19GNI&quot;].head(15)
+
+<span class="com">#@title 5- Crear Ventanas</span>
+from dateutil.relativedelta import relativedelta
+
+def crear_ventanas_para_df(df_b, fecha_col=&quot;fecha&quot;, valor_col=&quot;stock_solicitado_s&quot;,
+                           ventana=6, horizonte=1):
+    &quot;&quot;&quot;
+    Crea ventanas (X, y) para un DataFrame de una sola bodega.
+    - df_b: df con columnas fecha (datetime) y valor_col (normalizado).
+    - Devuelve dict con X_seq (n_samples, ventana, 1), y (n_samples, horizonte),
+      fecha_end (n_samples,) y n_original (n registros originales).
+    - Si no hay suficientes observaciones, devuelve None.
+    &quot;&quot;&quot;
+    <span class="com"># Asegurar orden por fecha</span>
+    df_b = df_b.sort_values(fecha_col).reset_index(drop=True)
+    vals = df_b[valor_col].values
+    fechas = pd.to_datetime(df_b[fecha_col].values)
+
+    n = len(df_b)
+    min_req = ventana + horizonte
+    if n &lt; min_req:
+        return None
+
+    X_list, y_list, fecha_end = [], [], []
+
+    <span class="com"># sliding window</span>
+    for i in range(n - min_req + 1):
+        start = i
+        end = i + ventana  <span class="com"># exclusive index for the input window</span>
+        target_start = end
+        target_end = end + horizonte
+
+        X = vals[start:end].reshape(ventana, 1)        <span class="com"># (ventana, 1)</span>
+        y = vals[target_start:target_end].reshape(horizonte,)  <span class="com"># (horizonte,)</span>
+
+        X_list.append(X)
+        y_list.append(y)
+        fecha_end.append(fechas[end-1])  <span class="com"># fecha del último timestep de la ventana</span>
+
+    return {
+        &quot;X_seq&quot;: np.array(X_list, dtype=float),
+        &quot;y&quot;: np.array(y_list, dtype=float),
+        &quot;fecha_end&quot;: np.array(fecha_end, dtype=&<span class="com">#x27;datetime64[ns]&#x27;),</span>
+        &quot;n_original&quot;: n
+    }
+
+
+def crear_ventanas_por_diccionario(dict_norm, ventana=6, horizonte=1,
+                                   fecha_col=&quot;fecha&quot;, valor_col=&quot;stock_solicitado_s&quot;,
+                                   min_samples=None):
+    &quot;&quot;&quot;
+    Crea un nuevo diccionario con ventanas por bodega.
+    - dict_norm: {bodega: df_b}
+    - min_samples: umbral mínimo (si None, se asume ventana+horizonte)
+    Devuelve:
+      seq_dict: {bodega: {&quot;X_seq&quot;, &quot;y&quot;, &quot;fecha_end&quot;, &quot;n_original&quot;}}
+    &quot;&quot;&quot;
+    seq_dict = {}
+    for bodega, df_b in dict_norm.items():
+        out = crear_ventanas_para_df(df_b, fecha_col=fecha_col, valor_col=valor_col,
+                                     ventana=ventana, horizonte=horizonte)
+        if out is None:
+            <span class="com"># opcional: loggear que la bodega se saltó</span>
+            <span class="com"># print(f&quot;Saltada bodega {bodega}: menos de {ventana+horizonte} registros.&quot;)</span>
+            continue
+
+        <span class="com"># chequeo de min_samples si aplica</span>
+        if min_samples is not None and out[&quot;X_seq&quot;].shape[0] &lt; min_samples:
+            <span class="com"># print(f&quot;Saltada bodega {bodega}: menos de {min_samples} muestras (ventanas).&quot;)</span>
+            continue
+
+        seq_dict[bodega] = out
+
+    return seq_dict
+
+
+def concatenar_secuencias(seq_dict, ordenar_por_fecha_end=True):
+    &quot;&quot;&quot;
+    Concatena todas las ventanas de seq_dict en arrays globales.
+    Devuelve X_seq_all, X_bodega_idx, y_all, fecha_ends_all
+      - X_seq_all: (N_total, ventana, 1)
+      - X_bodega_idx: (N_total,) indices (or labels) of bodegas for each sample
+      - y_all: (N_total, horizonte)
+      - fecha_ends_all: (N_total,)
+    Si ordenar_por_fecha_end True -&gt; ordena globalmente por fecha_end asc.
+    &quot;&quot;&quot;
+    b_list = []
+    X_list, y_list, f_list = [], [], []
+
+    for b, out in seq_dict.items():
+        n = out[&quot;X_seq&quot;].shape[0]
+        X_list.append(out[&quot;X_seq&quot;])
+        y_list.append(out[&quot;y&quot;])
+        f_list.append(out[&quot;fecha_end&quot;])
+        b_list.extend([b]*n)
+
+    if len(X_list) == 0:
+        return None, None, None, None
+
+    X_all = np.concatenate(X_list, axis=0)
+    y_all = np.concatenate(y_list, axis=0)
+    f_all = np.concatenate(f_list, axis=0)
+    b_all = np.array(b_list)
+
+    if ordenar_por_fecha_end:
+        order = np.argsort(f_all)
+        X_all = X_all[order]
+        y_all = y_all[order]
+        f_all = f_all[order]
+        b_all = b_all[order]
+
+    return X_all, b_all, y_all, f_all
+
+<span class="com"># Paraemetros</span>
+ventana = 6
+horizonte = 1
+
+<span class="com">#  crear ventanas por bodega para A y B</span>
+seq_A = crear_ventanas_por_diccionario(dict_A_norm, ventana=ventana, horizonte=horizonte)
+seq_B = crear_ventanas_por_diccionario(dict_B_norm, ventana=ventana, horizonte=horizonte)
+
+print(&quot;Bodegas con secuencias en A:&quot;, len(seq_A))
+print(&quot;Bodegas con secuencias en B:&quot;, len(seq_B))
+
+
+<span class="com"># @title 6- Crear split</span>
+&quot;&quot;&quot;&quot;
+el split temporal por bodega sirve para separar los datos de Cada bodega en train / val / test
+respetando su propia línea de tiempo, no la del dataset completo.
+&quot;&quot;&quot;
+
+
+<span class="com">#Split temporal por una bodega</span>
+from dateutil.relativedelta import relativedelta
+def temporal_split_por_bodega(fecha_ends, test_months=2, val_months=2):
+    &quot;&quot;&quot;
+    Dado un array de fechas (fecha_end) de UNA bodega,
+    devuelve los boolean masks para train / val / test.
+    &quot;&quot;&quot;
+    fecha_ends = pd.to_datetime(fecha_ends)
+    max_fecha = fecha_ends.max()
+
+    <span class="com"># Cortes temporales para esta bodega</span>
+    test_start = max_fecha - relativedelta(months=test_months)
+    val_start = max_fecha - relativedelta(months=(test_months + val_months))
+
+    <span class="com"># Máscaras</span>
+    mask_test  = fecha_ends &gt; test_start
+    mask_val   = (fecha_ends &gt; val_start) &amp; (fecha_ends &lt;= test_start)
+    mask_train = fecha_ends &lt;= val_start
+
+    return mask_train, mask_val, mask_test
+
+<span class="com"># Split para todo el diccionario</span>
+
+def split_por_bodega(seq_dict, test_months=2, val_months=2):
+    &quot;&quot;&quot;
+    Aplica el split temporal por bodega a todo el diccionario de secuencias.
+    Retorna un nuevo diccionario con los splits por bodega.
+    &quot;&quot;&quot;
+    split_dict = {}
+
+    for bodega, datos in seq_dict.items():
+
+        fechas = datos[&quot;fecha_end&quot;]
+        X = datos[&quot;X_seq&quot;]
+        y = datos[&quot;y&quot;]
+
+        <span class="com"># Obtener máscaras específicas para esta bodega</span>
+        mask_train, mask_val, mask_test = temporal_split_por_bodega(
+            fechas,
+            test_months=test_months,
+            val_months=val_months
+        )
+
+        <span class="com"># Guardar las particiones</span>
+        split_dict[bodega] = {
+            &quot;X_train&quot;:  X[mask_train],
+            &quot;y_train&quot;:  y[mask_train],
+            &quot;fechas_train&quot;: fechas[mask_train],
+
+            &quot;X_val&quot;:    X[mask_val],
+            &quot;y_val&quot;:    y[mask_val],
+            &quot;fechas_val&quot;: fechas[mask_val],
+
+            &quot;X_test&quot;:   X[mask_test],
+            &quot;y_test&quot;:   y[mask_test],
+            &quot;fechas_test&quot;: fechas[mask_test],
+        }
+
+    return split_dict
+
+seq_A = crear_ventanas_por_diccionario(dict_A_norm, ventana=6, horizonte=1)
+seq_B = crear_ventanas_por_diccionario(dict_B_norm, ventana=6, horizonte=1)
+
+split_A = split_por_bodega(seq_A, test_months=2, val_months=2)
+split_B = split_por_bodega(seq_B, test_months=2, val_months=2)
+
+<span class="com"># @title 7- Contrucción del modelo keras Tuner</span>
+def build_lstm_model(hp, input_shape):
+    model = keras.Sequential()
+
+    <span class="com"># Número de unidades LSTM</span>
+    units = hp.Int(&quot;units&quot;, min_value=16, max_value=128, step=16)
+
+    model.add(layers.LSTM(units, return_sequences=False, input_shape=input_shape))
+
+    <span class="com"># Densa final</span>
+    model.add(layers.Dense(1))
+
+    <span class="com"># Learning rate</span>
+    lr = hp.Choice(&quot;lr&quot;, values=[1e-4, 5e-4, 1e-3])
+
+    model.compile(
+        optimizer=keras.optimizers.Adam(learning_rate=lr),
+        loss=&quot;mse&quot;,
+        metrics=[&quot;mae&quot;]
+    )
+
+    return model
+
+<span class="com"># @title 8- Entrenamiento automático</span>
+import os
+from keras.callbacks import EarlyStopping, ModelCheckpoint
+
+<span class="com"># Crear carpeta de modelos</span>
+os.makedirs(&quot;modelos_entrenados&quot;, exist_ok=True)
+
+<span class="com"># Diccionarios a recorrer - CORRECTED to use split_A and split_B</span>
+dicts = {
+    &quot;A&quot;: split_A,
+    &quot;B&quot;: split_B
+}
+
+for nombre_modelo, dataset_dict in dicts.items():
+
+    print(f&quot;\n============================&quot;)
+    print(f&quot; ENTRENANDO MODELO {nombre_modelo}&quot;)
+    print(f&quot;============================\n&quot;)
+
+    for bodega, splits in dataset_dict.items():
+
+        print(f&quot;\n--&gt; Entrenando para bodega {bodega}&quot;)
+
+        X_train = splits[&quot;X_train&quot;]
+        y_train = splits[&quot;y_train&quot;]
+        X_val   = splits[&quot;X_val&quot;]
+        y_val   = splits[&quot;y_val&quot;]
+
+        input_shape = (X_train.shape[1], X_train.shape[2])
+
+        <span class="com"># -----------------------------</span>
+        <span class="com"># KERAS TUNER</span>
+        <span class="com"># -----------------------------</span>
+        tuner = kt.RandomSearch(
+            lambda hp: build_lstm_model(hp, input_shape),
+            objective=&quot;val_loss&quot;,
+            max_trials=8,
+            directory=&quot;tuner_results&quot;,
+            project_name=f&quot;tuner_{nombre_modelo}_{bodega}&quot;
+        )
+
+        tuner.search(
+            X_train, y_train,
+            validation_data=(X_val, y_val),
+            epochs=50,
+            callbacks=[
+                EarlyStopping(monitor=&quot;val_loss&quot;, patience=10, restore_best_weights=True)
+            ],
+            verbose=0
+        )
+
+        <span class="com"># Mejor hiperparámetros</span>
+        best_hp = tuner.get_best_hyperparameters(1)[0]
+        model = tuner.hypermodel.build(best_hp)
+
+        <span class="com"># -----------------------------</span>
+        <span class="com"># ENTRENAMIENTO FINAL</span>
+        <span class="com"># -----------------------------</span>
+        ruta_guardado = f&quot;modelos_entrenados/modelo_{nombre_modelo}_bodega_{bodega}.keras&quot;
+
+        checkpoint = ModelCheckpoint(
+            ruta_guardado,
+            monitor=&quot;val_loss&quot;,
+            save_best_only=True,
+            mode=&quot;min&quot;
+        )
+
+        history = model.fit(
+            X_train, y_train,
+            validation_data=(X_val, y_val),
+            epochs=100,
+            callbacks=[
+                EarlyStopping(monitor=&quot;val_loss&quot;, patience=12, restore_best_weights=True),
+                checkpoint
+            ],
+            verbose=0
+        )
+
+        print(f&quot;   ✔ Modelo guardado como: {ruta_guardado}&quot;)
+
+<span class="com">#@title 9- Evaluar modelos</span>
+
+def evaluar_modelos(dict_modelos, nombre_diccionario, carpeta=&quot;modelos_entrenados&quot;):
+    &quot;&quot;&quot;
+    dict_modelos: seq_A o seq_B
+    nombre_diccionario: &quot;A&quot; o &quot;B&quot;
+    &quot;&quot;&quot;
+
+    resultados = []
+
+    for bodega, splits in dict_modelos.items():
+
+        ruta = os.path.join(carpeta, f&quot;modelo_{nombre_diccionario}_bodega_{bodega}.keras&quot;)
+
+        if not os.path.exists(ruta):
+            print(f&quot;No existe modelo para bodega {bodega}&quot;)
+            continue
+
+        <span class="com"># Cargar modelo</span>
+        model = tf.keras.models.load_model(ruta)
+
+        <span class="com"># Evaluar</span>
+        X_test = splits[&quot;X_test&quot;]
+        y_test = splits[&quot;y_test&quot;]
+
+        loss, mae = model.evaluate(X_test, y_test, verbose=0)
+
+        <span class="com"># Extraer hiperparámetros limpios directamente</span>
+        hp_clean = {}
+        try:
+            model_architecture_config = model.get_config()
+            <span class="com"># Search for LSTM layer to get units</span>
+            for layer_config in model_architecture_config[&quot;layers&quot;]:
+                if layer_config[&quot;class_name&quot;] == &quot;LSTM&quot;:
+                    hp_clean[&quot;lstm_units&quot;] = layer_config[&quot;config&quot;][&quot;units&quot;]
+                    <span class="com"># Dropout is not tuned, defaults to 0 if not present</span>
+                    hp_clean[&quot;lstm_dropout&quot;] = layer_config[&quot;config&quot;].get(&quot;dropout&quot;, 0.0)
+                    break
+        except Exception as e:
+            print(f&quot;Error extracting LSTM units for {bodega}: {e}&quot;)
+
+        try:
+            <span class="com"># Get learning rate from the loaded model&#x27;s optimizer</span>
+            if hasattr(model, &<span class="com">#x27;optimizer&#x27;) and hasattr(model.optimizer, &#x27;learning_rate&#x27;):</span>
+                <span class="com"># Keras 3 learning_rate can be a callable schedule</span>
+                if callable(model.optimizer.learning_rate):
+                    <span class="com"># Pass optimizer.iterations to get current LR if it&#x27;s a schedule</span>
+                    hp_clean[&quot;learning_rate&quot;] = float(model.optimizer.learning_rate(model.optimizer.iterations).numpy())
+                else:
+                    hp_clean[&quot;learning_rate&quot;] = float(model.optimizer.learning_rate.numpy())
+            else:
+                hp_clean[&quot;learning_rate&quot;] = None
+        except Exception as e:
+            print(f&quot;Error extracting learning rate for {bodega}: {e}&quot;)
+            hp_clean[&quot;learning_rate&quot;] = None
+
+        resultados.append({
+            &quot;diccionario&quot;: nombre_diccionario,
+            &quot;bodega&quot;: bodega,
+            &quot;loss&quot;: loss,
+            &quot;mae&quot;: mae,
+            &quot;hp&quot;: hp_clean <span class="com"># Store the cleaned HPs directly here</span>
+        })
+
+    return resultados
+
+resultados_A = evaluar_modelos(split_A, &quot;A&quot;)
+resultados_B = evaluar_modelos(split_B, &quot;B&quot;)
+
+df_res_A = pd.DataFrame(resultados_A).sort_values(&quot;mae&quot;)
+df_res_B = pd.DataFrame(resultados_B).sort_values(&quot;mae&quot;)
+
+print(&quot;TOP MODELOS A:&quot;)
+print(df_res_A.head(28))
+
+print(&quot;\nTOP MODELOS B:&quot;)
+print(df_res_B.head(24))
+
+<span class="com">#@ 10- Extraer hiperparámetros</span>
+def extraer_hp(model_config):
+    &quot;&quot;&quot;Devuelve solo lo importante del modelo.&quot;&quot;&quot;
+    if model_config is None:
+        return {}
+
+    hp = {}
+
+    <span class="com"># Buscar capa LSTM</span>
+    for layer in model_config[&quot;layers&quot;]:
+        if &quot;class_name&quot; in layer and layer[&quot;class_name&quot;] == &quot;LSTM&quot;:
+            hp[&quot;lstm_units&quot;] = layer[&quot;config&quot;][&quot;units&quot;]
+            hp[&quot;lstm_dropout&quot;] = layer[&quot;config&quot;][&quot;dropout&quot;]
+
+    <span class="com"># Buscar optimizador</span>
+    opt = model_config[&quot;compile_config&quot;][&quot;optimizer_config&quot;][&quot;config&quot;]
+    hp[&quot;learning_rate&quot;] = opt.get(&quot;learning_rate&quot;, None)
+
+    return hp
+
+df_res_A[&quot;hp_clean&quot;] = df_res_A[&quot;hp&quot;]
+df_res_B[&quot;hp_clean&quot;] = df_res_B[&quot;hp&quot;]
+
+df_res_A[[&quot;bodega&quot;, &quot;mae&quot;, &quot;hp_clean&quot;]].head()
+
+<span class="com"># @title 10- Exportar a un csv</span>
+<span class="com"># The &#x27;hp&#x27; column now contains the cleaned hyperparameters after re-running the evaluation cells.</span>
+df_res_A[&quot;hp_clean&quot;] = df_res_A[&quot;hp&quot;]
+df_res_B[&quot;hp_clean&quot;] = df_res_B[&quot;hp&quot;]
+
+<span class="com"># Seleccionar columnas importantes</span>
+cols = [&quot;diccionario&quot;, &quot;bodega&quot;, &quot;mae&quot;, &quot;loss&quot;, &quot;hp_clean&quot;]
+
+<span class="com"># Exportar modelos del diccionario A</span>
+df_res_A[cols].to_csv(&quot;mejores_modelos_A.csv&quot;, index=False)
+
+<span class="com"># Exportar modelos del diccionario B</span>
+df_res_B[cols].to_csv(&quot;mejores_modelos_B.csv&quot;, index=False)
+
+print(&quot;Archivos exportados:\n- mejores_modelos_A.csv\n- mejores_modelos_B.csv&quot;)
+
+<span class="com">#@title 11- Predicciones futuras</span>
+def predecir_futuro_por_bodega(
+        dict_splits,        <span class="com"># seq_A o seq_B</span>
+        dict_series,        <span class="com"># dict_A_series o dict_B_series</span>
+        dict_scalers,       <span class="com"># scalers_A o scalers_B</span>
+        nombre_diccionario, <span class="com"># &quot;A&quot; o &quot;B&quot;</span>
+        carpeta_modelos=&quot;modelos_entrenados&quot;
+    ):
+
+    resultados = []
+
+    for bodega in dict_splits.keys():
+
+        <span class="com"># -------------------</span>
+        <span class="com"># 1. Cargar modelo</span>
+        <span class="com"># -------------------</span>
+        ruta_modelo = os.path.join(carpeta_modelos, f&quot;modelo_{nombre_diccionario}_bodega_{bodega}.keras&quot;)
+        if not os.path.exists(ruta_modelo):
+            print(f&quot;Modelo NO encontrado para bodega {bodega} ({nombre_diccionario})&quot;)
+            continue
+
+        model = tf.keras.models.load_model(ruta_modelo)
+
+        <span class="com"># -------------------</span>
+        <span class="com"># 2. Obtener última ventana de esa bodega</span>
+        <span class="com"># -------------------</span>
+        serie = dict_series[bodega][&quot;stock_solicitado_s&quot;].values <span class="com"># Corrected column name</span>
+        ventana_size = list(dict_splits[bodega][&quot;X_test&quot;].shape)[1]  <span class="com"># tamaño de ventana usado</span>
+
+        if len(serie) &lt; ventana_size:
+            print(f&quot;Bodega {bodega}: serie muy corta para predicción futura.&quot;)
+            continue
+
+        ultima_ventana = serie[-ventana_size:].reshape(1, ventana_size, 1)
+
+        <span class="com"># -------------------</span>
+        <span class="com"># 3. Predecir futuro</span>
+        <span class="com"># -------------------</span>
+        pred_scaled = model.predict(ultima_ventana, verbose=0)[0]
+
+        <span class="com"># -------------------</span>
+        <span class="com"># 4. Invertir escala</span>
+        <span class="com"># -------------------</span>
+        scaler = dict_scalers[bodega]
+        pred_real = scaler.inverse_transform(pred_scaled.reshape(-1, 1)).flatten()[0]
+
+        <span class="com"># -------------------</span>
+        <span class="com"># 5. Guardar resultado</span>
+        <span class="com"># -------------------</span>
+        resultados.append({
+            &quot;diccionario&quot;: nombre_diccionario,
+            &quot;bodega&quot;: bodega,
+            &quot;pred_scaled&quot;: float(pred_scaled[0]),
+            &quot;pred_real&quot;: float(pred_real)
+        })
+
+    return pd.DataFrame(resultados)
+
+pred_A = predecir_futuro_por_bodega(
+    dict_splits=split_A,
+    dict_series=dict_A_norm,
+    dict_scalers=dict_A_scalers,
+    nombre_diccionario=&quot;A&quot;
+)
+
+pred_B = predecir_futuro_por_bodega(
+    dict_splits=split_B,
+    dict_series=dict_B_norm,
+    dict_scalers=dict_B_scalers,
+    nombre_diccionario=&quot;B&quot;
+)
+
+<span class="com">#@title 12- graficar predicció vs historia</span>
+import matplotlib.pyplot as plt
+import pandas as pd
+
+def graficar_bodega(
+        dict_series,     <span class="com"># dict_A_series o dict_B_series</span>
+        df_pred,         <span class="com"># pred_A o pred_B</span>
+        bodega,
+        titulo_prefix=&quot;&quot;
+    ):
+
+    if bodega not in dict_series:
+        print(f&quot;Bodega {bodega} no existe en el diccionario de series.&quot;)
+        return
+
+    <span class="com"># Serie histórica real</span>
+    serie = dict_series[bodega].copy()
+
+    <span class="com"># Agregar predicción futura</span>
+    try:
+        pred = df_pred[df_pred[&quot;bodega&quot;] == bodega][&quot;pred_real&quot;].values[0]
+    except:
+        print(f&quot;No hay predicción para bodega {bodega}&quot;)
+        return
+
+    <span class="com"># Crear fila futura</span>
+    fecha_futura = serie[&quot;fecha&quot;].max() + pd.DateOffset(months=1)
+
+    df_plot = serie.copy()
+    df_plot[&quot;tipo&quot;] = &quot;historia&quot;
+
+    df_fut = pd.DataFrame({
+        &quot;fecha&quot;: [fecha_futura],
+        &quot;stock_solicitado&quot;: [pred],
+        &quot;serie_s&quot;: [None],
+        &quot;tipo&quot;: [&quot;predicción&quot;]
+    })
+
+    df_plot = pd.concat([df_plot, df_fut], ignore_index=True)
+
+    <span class="com"># Graficar</span>
+    plt.figure(figsize=(12, 5))
+    plt.plot(
+        df_plot[df_plot[&quot;tipo&quot;] == &quot;historia&quot;][&quot;fecha&quot;],
+        df_plot[df_plot[&quot;tipo&quot;] == &quot;historia&quot;][&quot;stock_solicitado&quot;],
+        label=&quot;Historia&quot;,
+        linewidth=2
+    )
+    plt.scatter(
+        df_plot[df_plot[&quot;tipo&quot;] == &quot;predicción&quot;][&quot;fecha&quot;],
+        df_plot[df_plot[&quot;tipo&quot;] == &quot;predicción&quot;][&quot;stock_solicitado&quot;],
+        color=&quot;red&quot;,
+        label=&quot;Predicción Próximo Mes&quot;,
+        s=100
+    )
+
+    plt.title(f&quot;{titulo_prefix} Bodega {bodega} — Predicción vs Historia&quot;)
+    plt.xlabel(&quot;Fecha&quot;)
+    plt.ylabel(&quot;Stock Solicitado&quot;)
+    plt.legend()
+    plt.grid(True)
+    plt.tight_layout()
+    <span class="com"># Save plot instead of showing</span>
+    filename = f&quot;plot_{titulo_prefix.replace(&<span class="com">#x27; &#x27;, &#x27;_&#x27;)}_{bodega}.png&quot;</span>
+    plt.savefig(filename, dpi=100, bbox_inches=&<span class="com">#x27;tight&#x27;)</span>
+    plt.close()
+    print(f&quot;Gráfico guardado: {filename}&quot;)
+
+
+graficar_bodega(dict_series=dict_A_norm, df_pred=pred_A, bodega=&quot;BDG-19GNI&quot;, titulo_prefix=&quot;Producto A&quot;)
+
+graficar_bodega(dict_series=dict_B_norm, df_pred=pred_B, bodega=&quot;BDG-19GNI&quot;, titulo_prefix=&quot;Producto B&quot;)
+
+for b in pred_A[&quot;bodega&quot;].unique():
+    graficar_bodega(dict_series=dict_A_norm, df_pred=pred_A, bodega=b, titulo_prefix=&quot;Producto P9933&quot;)
+
+for b in pred_B[&quot;bodega&quot;].unique():
+    graficar_bodega(dict_series=dict_B_norm, df_pred=pred_B, bodega=b, titulo_prefix=&quot;Producto P2417&quot;)
+
+<span class="com">#@13- Guardar el mejor modelo</span>
+os.makedirs(&quot;modelos_A&quot;, exist_ok=True)
+os.makedirs(&quot;modelos_B&quot;, exist_ok=True)
+
+<span class="com"># Cargar modelos para guardarlos</span>
+best_models_A = {}
+for bodega in df_res_A[&<span class="com">#x27;bodega&#x27;]:</span>
+    path = f&quot;modelos_entrenados/modelo_A_bodega_{bodega}.keras&quot;
+    if os.path.exists(path):
+        best_models_A[bodega] = tf.keras.models.load_model(path)
+
+best_models_B = {}
+for bodega in df_res_B[&<span class="com">#x27;bodega&#x27;]:</span>
+    path = f&quot;modelos_entrenados/modelo_B_bodega_{bodega}.keras&quot;
+    if os.path.exists(path):
+        best_models_B[bodega] = tf.keras.models.load_model(path)
+
+<span class="com"># best_models_A[bodega]</span>
+<span class="com"># best_models_B[bodega]</span>
+
+def guardar_modelos(diccionario_modelos, ruta_base):
+    &quot;&quot;&quot;
+    Guarda cada modelo del diccionario en una carpeta individual.
+    &quot;&quot;&quot;
+    for bodega, modelo in diccionario_modelos.items(): <span class="com"># Changed &#x27;info&#x27; to &#x27;modelo&#x27; here</span>
+
+        <span class="com"># Crear ruta del modelo por bodega</span>
+        ruta_bodega = os.path.join(ruta_base, f&quot;bodega_{bodega}&quot;)
+        os.makedirs(ruta_bodega, exist_ok=True)
+
+        <span class="com"># Nombre del archivo</span>
+        ruta_modelo = os.path.join(ruta_bodega, &quot;best_model.keras&quot;)
+
+        <span class="com"># Guardar modelo</span>
+        modelo.save(ruta_modelo)
+
+        print(f&quot;✔ Modelo guardado para bodega {bodega} en {ruta_modelo}&quot;)
+
+guardar_modelos(best_models_A, &quot;modelos_A&quot;)
+guardar_modelos(best_models_B, &quot;modelos_B&quot;)
+</code></pre>
+                </div>
+            </div>
+            <div class="page-break"></div>
+            <div id="script-2">
+                <h2>2. Análisis Completo de Datos</h2>
+                <p class="desc">Script para generar estadísticas globales y análisis masivo de bodegas.</p>
+                <p style="font-family: monospace; background: #eee; padding: 5px; display: inline-block;">Archivo: analisis_completo_todos_los_datos.py</p>
+                
+                <div class="code-container">
+                    <pre><code><span class="com"># -*- coding: utf-8 -*-</span>
+&quot;&quot;&quot;
+ANALISIS COMPLETO DEL CONJUNTO DE DATOS
+========================================
+Análisis exhaustivo de todos los productos y bodegas
+&quot;&quot;&quot;
+
+import tensorflow as tf
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+import json
+import warnings
+warnings.filterwarnings(&<span class="com">#x27;ignore&#x27;)</span>
+
+print(&quot;=&quot;*80)
+print(&quot;ANALISIS COMPLETO - SISTEMA DE PREDICCION DE DEMANDA&quot;)
+print(&quot;=&quot;*80)
+
+<span class="com"># ============================================</span>
+<span class="com"># CARGAR DATOS REALES</span>
+<span class="com"># ============================================</span>
+print(&quot;\n[1/6] Cargando datos del archivo Excel...&quot;)
+url = &quot;https://github.com/OscarT231/Proyecto-deep-/raw/refs/heads/main/Base_filtrada.xlsx&quot;
+df = pd.read_excel(url)
+
+df.columns = df.columns.astype(str).str.strip()
+columnas = [
+    &quot;bodega&quot;, &quot;producto&quot;, &quot;calificacion_abc&quot;,
+    &quot;2024-09-01 00:00:00&quot;,&quot;2024-10-01 00:00:00&quot;,&quot;2024-11-01 00:00:00&quot;,&quot;2024-12-01 00:00:00&quot;,
+    &quot;2025-01-01 00:00:00&quot;,&quot;2025-02-01 00:00:00&quot;,&quot;2025-03-01 00:00:00&quot;,&quot;2025-04-01 00:00:00&quot;,
+    &quot;2025-05-01 00:00:00&quot;,&quot;2025-06-01 00:00:00&quot;,&quot;2025-07-01 00:00:00&quot;,&quot;2025-08-01 00:00:00&quot;
+]
+
+df = df[[col for col in columnas if col in df.columns]].copy()
+df = df[~df[&quot;calificacion_abc&quot;].isin([&quot;O&quot;, &quot;N&quot;])].copy()
+
+<span class="com"># Formato long</span>
+id_cols = [&quot;bodega&quot;, &quot;producto&quot;, &quot;calificacion_abc&quot;]
+date_cols = [c for c in df.columns if c not in id_cols]
+df_long = df.melt(id_vars=id_cols, value_vars=date_cols, var_name=&quot;fecha&quot;, value_name=&quot;stock&quot;)
+df_long[&<span class="com">#x27;fecha&#x27;] = pd.to_datetime(df_long[&#x27;fecha&#x27;])</span>
+df_long = df_long.sort_values([&quot;bodega&quot;, &quot;producto&quot;, &quot;fecha&quot;])
+
+print(f&quot;   Total de registros cargados: {len(df_long):,}&quot;)
+print(f&quot;   Productos unicos: {df_long[&<span class="com">#x27;producto&#x27;].nunique()}&quot;)</span>
+print(f&quot;   Bodegas uniques: {df_long[&<span class="com">#x27;bodega&#x27;].nunique()}&quot;)</span>
+
+<span class="com"># ============================================</span>
+<span class="com"># ANALISIS PRODUCTO A (P9933)</span>
+<span class="com"># ============================================</span>
+print(&quot;\n[2/6] Analizando Producto P9933 (Categoria A)...&quot;)
+df_P9933 = df_long[df_long[&<span class="com">#x27;producto&#x27;] == &#x27;P9933&#x27;]</span>
+
+resultados_A = []
+for bodega in df_P9933[&<span class="com">#x27;bodega&#x27;].unique():</span>
+    datos = df_P9933[df_P9933[&<span class="com">#x27;bodega&#x27;] == bodega]</span>
+    if len(datos) &gt;= 6:
+        try:
+            ultimos_6 = datos[&<span class="com">#x27;stock&#x27;].tail(6).values</span>
+            scaler = MinMaxScaler()
+            scaler.fit(ultimos_6.reshape(-1, 1))
+            norm = scaler.transform(ultimos_6.reshape(-1, 1))
+            
+            modelo = tf.keras.models.load_model(f&<span class="com">#x27;modelos_A/bodega_{bodega}/best_model.keras&#x27;)</span>
+            pred = modelo.predict(norm.reshape(1, 6, 1), verbose=0)
+            pred_real = scaler.inverse_transform(pred.reshape(-1, 1))[0][0]
+            
+            resultados_A.append({
+                &<span class="com">#x27;bodega&#x27;: bodega,</span>
+                &<span class="com">#x27;demanda_promedio&#x27;: ultimos_6.mean(),</span>
+                &<span class="com">#x27;demanda_min&#x27;: ultimos_6.min(),</span>
+                &<span class="com">#x27;demanda_max&#x27;: ultimos_6.max(),</span>
+                &<span class="com">#x27;feb_2025&#x27;: ultimos_6[-1],</span>
+                &<span class="com">#x27;mar_2025_pred&#x27;: pred_real,</span>
+                &<span class="com">#x27;cambio_abs&#x27;: pred_real - ultimos_6[-1],</span>
+                &<span class="com">#x27;cambio_pct&#x27;: ((pred_real - ultimos_6[-1]) / ultimos_6[-1]) * 100</span>
+            })
+        except Exception as e:
+            pass
+
+df_A = pd.DataFrame(resultados_A)
+print(f&quot;   Bodegas analizadas: {len(df_A)}&quot;)
+print(f&quot;   Demanda total predicha: {df_A[&<span class="com">#x27;mar_2025_pred&#x27;].sum():.0f} unidades&quot;)</span>
+
+<span class="com"># ============================================</span>
+<span class="com"># ANALISIS PRODUCTO B (P2417)</span>
+<span class="com"># ============================================</span>
+print(&quot;\n[3/6] Analizando Producto P2417 (Categoria B)...&quot;)
+df_P2417 = df_long[df_long[&<span class="com">#x27;producto&#x27;] == &#x27;P2417&#x27;]</span>
+
+resultados_B = []
+for bodega in df_P2417[&<span class="com">#x27;bodega&#x27;].unique():</span>
+    datos = df_P2417[df_P2417[&<span class="com">#x27;bodega&#x27;] == bodega]</span>
+    if len(datos) &gt;= 6:
+        try:
+            ultimos_6 = datos[&<span class="com">#x27;stock&#x27;].tail(6).values</span>
+            scaler = MinMaxScaler()
+            scaler.fit(ultimos_6.reshape(-1, 1))
+            norm = scaler.transform(ultimos_6.reshape(-1, 1))
+            
+            modelo = tf.keras.models.load_model(f&<span class="com">#x27;modelos_B/bodega_{bodega}/best_model.keras&#x27;)</span>
+            pred = modelo.predict(norm.reshape(1, 6, 1), verbose=0)
+            pred_real = scaler.inverse_transform(pred.reshape(-1, 1))[0][0]
+            
+            resultados_B.append({
+                &<span class="com">#x27;bodega&#x27;: bodega,</span>
+                &<span class="com">#x27;demanda_promedio&#x27;: ultimos_6.mean(),</span>
+                &<span class="com">#x27;demanda_min&#x27;: ultimos_6.min(),</span>
+                &<span class="com">#x27;demanda_max&#x27;: ultimos_6.max(),</span>
+                &<span class="com">#x27;feb_2025&#x27;: ultimos_6[-1],</span>
+                &<span class="com">#x27;mar_2025_pred&#x27;: pred_real,</span>
+                &<span class="com">#x27;cambio_abs&#x27;: pred_real - ultimos_6[-1],</span>
+                &<span class="com">#x27;cambio_pct&#x27;: ((pred_real - ultimos_6[-1]) / ultimos_6[-1]) * 100</span>
+            })
+        except Exception as e:
+            pass
+
+df_B = pd.DataFrame(resultados_B)
+print(f&quot;   Bodegas analizadas: {len(df_B)}&quot;)
+print(f&quot;   Demanda total predicha: {df_B[&<span class="com">#x27;mar_2025_pred&#x27;].sum():.0f} unidades&quot;)</span>
+
+<span class="com"># ============================================</span>
+<span class="com"># METRICAS DE RENDIMIENTO</span>
+<span class="com"># ============================================</span>
+print(&quot;\n[4/6] Analizando metricas de rendimiento...&quot;)
+metricas_A = pd.read_csv(&<span class="com">#x27;mejores_modelos_A.csv&#x27;)</span>
+metricas_B = pd.read_csv(&<span class="com">#x27;mejores_modelos_B.csv&#x27;)</span>
+
+mae_promedio_A = metricas_A[&<span class="com">#x27;mae&#x27;].mean()</span>
+mae_promedio_B = metricas_B[&<span class="com">#x27;mae&#x27;].mean()</span>
+
+print(f&quot;   MAE promedio Producto A: {mae_promedio_A:.6f}&quot;)
+print(f&quot;   MAE promedio Producto B: {mae_promedio_B:.6f}&quot;)
+
+<span class="com"># ============================================</span>
+<span class="com"># ESTADISTICAS GLOBALES</span>
+<span class="com"># ============================================</span>
+print(&quot;\n[5/6] Calculando estadisticas globales...&quot;)
+
+estadisticas = {
+    &<span class="com">#x27;producto_A&#x27;: {</span>
+        &<span class="com">#x27;bodegas&#x27;: int(len(df_A)),</span>
+        &<span class="com">#x27;demanda_total_feb&#x27;: float(df_A[&#x27;feb_2025&#x27;].sum()),</span>
+        &<span class="com">#x27;demanda_total_mar_pred&#x27;: float(df_A[&#x27;mar_2025_pred&#x27;].sum()),</span>
+        &<span class="com">#x27;demanda_promedio&#x27;: float(df_A[&#x27;demanda_promedio&#x27;].mean()),</span>
+        &<span class="com">#x27;crecimiento_total&#x27;: float(df_A[&#x27;mar_2025_pred&#x27;].sum() - df_A[&#x27;feb_2025&#x27;].sum()),</span>
+        &<span class="com">#x27;mae_promedio&#x27;: float(mae_promedio_A)</span>
+    },
+    &<span class="com">#x27;producto_B&#x27;: {</span>
+        &<span class="com">#x27;bodegas&#x27;: int(len(df_B)),</span>
+        &<span class="com">#x27;demanda_total_feb&#x27;: float(df_B[&#x27;feb_2025&#x27;].sum()),</span>
+        &<span class="com">#x27;demanda_total_mar_pred&#x27;: float(df_B[&#x27;mar_2025_pred&#x27;].sum()),</span>
+        &<span class="com">#x27;demanda_promedio&#x27;: float(df_B[&#x27;demanda_promedio&#x27;].mean()),</span>
+        &<span class="com">#x27;crecimiento_total&#x27;: float(df_B[&#x27;mar_2025_pred&#x27;].sum() - df_B[&#x27;feb_2025&#x27;].sum()),</span>
+        &<span class="com">#x27;mae_promedio&#x27;: float(mae_promedio_B)</span>
+    },
+    &<span class="com">#x27;global&#x27;: {</span>
+        &<span class="com">#x27;total_bodegas&#x27;: int(len(df_A) + len(df_B)),</span>
+        &<span class="com">#x27;total_modelos&#x27;: 52,</span>
+        &<span class="com">#x27;registros_analizados&#x27;: int(len(df_long)),</span>
+        &<span class="com">#x27;demanda_total_predicha&#x27;: float(df_A[&#x27;mar_2025_pred&#x27;].sum() + df_B[&#x27;mar_2025_pred&#x27;].sum())</span>
+    }
+}
+
+<span class="com"># ============================================</span>
+<span class="com"># EXPORTAR RESULTADOS</span>
+<span class="com"># ============================================</span>
+print(&quot;\n[6/6] Exportando resultados...&quot;)
+
+<span class="com"># Guardar DataFrames</span>
+df_A.to_csv(&<span class="com">#x27;analisis_completo_producto_A.csv&#x27;, index=False)</span>
+df_B.to_csv(&<span class="com">#x27;analisis_completo_producto_B.csv&#x27;, index=False)</span>
+
+<span class="com"># Guardar estadísticas</span>
+with open(&<span class="com">#x27;estadisticas_globales.json&#x27;, &#x27;w&#x27;, encoding=&#x27;utf-8&#x27;) as f:</span>
+    json.dump(estadisticas, f, indent=2, ensure_ascii=False)
+
+print(&quot;\n&quot; + &quot;=&quot;*80)
+print(&quot;RESUMEN EJECUTIVO&quot;)
+print(&quot;=&quot;*80)
+print(f&quot;\nProducto P9933 (Categoria A):&quot;)
+print(f&quot;  - Bodegas analizadas: {estadisticas[&<span class="com">#x27;producto_A&#x27;][&#x27;bodegas&#x27;]}&quot;)</span>
+print(f&quot;  - Demanda Feb 2025: {estadisticas[&<span class="com">#x27;producto_A&#x27;][&#x27;demanda_total_feb&#x27;]:.0f} unidades&quot;)</span>
+print(f&quot;  - Prediccion Mar 2025: {estadisticas[&<span class="com">#x27;producto_A&#x27;][&#x27;demanda_total_mar_pred&#x27;]:.0f} unidades&quot;)</span>
+print(f&quot;  - Crecimiento: {estadisticas[&<span class="com">#x27;producto_A&#x27;][&#x27;crecimiento_total&#x27;]:+.0f} unidades&quot;)</span>
+
+print(f&quot;\nProducto P2417 (Categoria B):&quot;)
+print(f&quot;  - Bodegas analizadas: {estadisticas[&<span class="com">#x27;producto_B&#x27;][&#x27;bodegas&#x27;]}&quot;)</span>
+print(f&quot;  - Demanda Feb 2025: {estadisticas[&<span class="com">#x27;producto_B&#x27;][&#x27;demanda_total_feb&#x27;]:.0f} unidades&quot;)</span>
+print(f&quot;  - Prediccion Mar 2025: {estadisticas[&<span class="com">#x27;producto_B&#x27;][&#x27;demanda_total_mar_pred&#x27;]:.0f} unidades&quot;)</span>
+print(f&quot;  - Crecimiento: {estadisticas[&<span class="com">#x27;producto_B&#x27;][&#x27;crecimiento_total&#x27;]:+.0f} unidades&quot;)</span>
+
+print(f&quot;\nTOTAL GENERAL:&quot;)
+print(f&quot;  - Demanda predicha (ambos productos): {estadisticas[&<span class="com">#x27;global&#x27;][&#x27;demanda_total_predicha&#x27;]:.0f} unidades&quot;)</span>
+print(f&quot;  - Modelos entrenados: {estadisticas[&<span class="com">#x27;global&#x27;][&#x27;total_modelos&#x27;]}&quot;)</span>
+print(f&quot;  - Precision promedio (MAE): {(mae_promedio_A + mae_promedio_B)/2:.6f}&quot;)
+
+print(&quot;\n&quot; + &quot;=&quot;*80)
+print(&quot;Archivos generados:&quot;)
+print(&quot;  - analisis_completo_producto_A.csv&quot;)
+print(&quot;  - analisis_completo_producto_B.csv&quot;)
+print(&quot;  - estadisticas_globales.json&quot;)
+print(&quot;=&quot;*80)
+</code></pre>
+                </div>
+            </div>
+            <div class="page-break"></div>
+            <div id="script-3">
+                <h2>3. Generador de Predicciones Reales</h2>
+                <p class="desc">Script para cargar modelos y generar predicciones con datos nuevos.</p>
+                <p style="font-family: monospace; background: #eee; padding: 5px; display: inline-block;">Archivo: predicciones_REALES.py</p>
+                
+                <div class="code-container">
+                    <pre><code><span class="com"># -*- coding: utf-8 -*-</span>
+&quot;&quot;&quot;
+USO DE MODELOS CON DATOS REALES
+================================
+Este script muestra como cargar TUS datos reales y hacer predicciones
+&quot;&quot;&quot;
+
+import tensorflow as tf
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+
+<span class="com"># ============================================</span>
+<span class="com"># PASO 1: Cargar tus datos REALES</span>
+<span class="com"># ============================================</span>
+
+<span class="com"># Cargar el dataset original</span>
+url = &quot;https://github.com/OscarT231/Proyecto-deep-/raw/refs/heads/main/Base_filtrada.xlsx&quot;
+df = pd.read_excel(url)
+
+<span class="com"># Filtrar columnas</span>
+df.columns = df.columns.astype(str).str.strip()
+columnas_deseadas = [
+    &quot;bodega&quot;, &quot;producto&quot;, &quot;calificacion_abc&quot;,
+    &quot;2024-09-01 00:00:00&quot;,&quot;2024-10-01 00:00:00&quot;,&quot;2024-11-01 00:00:00&quot;,&quot;2024-12-01 00:00:00&quot;,
+    &quot;2025-01-01 00:00:00&quot;,&quot;2025-02-01 00:00:00&quot;,&quot;2025-03-01 00:00:00&quot;,&quot;2025-04-01 00:00:00&quot;,
+    &quot;2025-05-01 00:00:00&quot;,&quot;2025-06-01 00:00:00&quot;,&quot;2025-07-01 00:00:00&quot;,&quot;2025-08-01 00:00:00&quot;
+]
+
+df_sugerido = df[[col for col in columnas_deseadas if col in df.columns]].copy()
+df_sugerido = df_sugerido[~df_sugerido[&quot;calificacion_abc&quot;].isin([&quot;O&quot;, &quot;N&quot;])].copy()
+
+<span class="com"># Convertir a formato long</span>
+id_cols = [&quot;bodega&quot;, &quot;producto&quot;, &quot;calificacion_abc&quot;]
+date_cols = [c for c in df_sugerido.columns if c not in id_cols]
+
+df_long = df_sugerido.melt(id_vars=id_cols,
+                            value_vars=date_cols,
+                            var_name=&quot;fecha&quot;,
+                            value_name=&quot;stock_solicitado&quot;)
+
+df_long[&<span class="com">#x27;fecha&#x27;] = pd.to_datetime(df_long[&#x27;fecha&#x27;])</span>
+df_long = df_long.sort_values([&quot;bodega&quot;, &quot;producto&quot;, &quot;fecha&quot;])
+
+print(&quot;Datos cargados exitosamente!&quot;)
+print(f&quot;Total de registros: {len(df_long)}&quot;)
+
+<span class="com"># ============================================</span>
+<span class="com"># PASO 2: Hacer prediccion REAL para una bodega</span>
+<span class="com"># ============================================</span>
+
+<span class="com"># Ejemplo: Producto P9933, Bodega BDG-19GNI</span>
+bodega_seleccionada = &quot;BDG-19GNI&quot;
+producto_seleccionado = &quot;P9933&quot;
+
+<span class="com"># Filtrar datos de esa bodega y producto</span>
+datos_bodega = df_long[
+    (df_long[&<span class="com">#x27;bodega&#x27;] == bodega_seleccionada) &amp; </span>
+    (df_long[&<span class="com">#x27;producto&#x27;] == producto_seleccionado)</span>
+].copy()
+
+print(f&quot;\n{&<span class="com">#x27;=&#x27;*60}&quot;)</span>
+print(f&quot;Prediccion REAL para: {producto_seleccionado} - {bodega_seleccionada}&quot;)
+print(f&quot;{&<span class="com">#x27;=&#x27;*60}&quot;)</span>
+
+if len(datos_bodega) &gt;= 6:
+    <span class="com"># Obtener ultimos 6 meses REALES</span>
+    ultimos_6 = datos_bodega[&<span class="com">#x27;stock_solicitado&#x27;].tail(6).values</span>
+    
+    print(&quot;\nDemanda historica REAL (ultimos 6 meses):&quot;)
+    for i, val in enumerate(ultimos_6, 1):
+        print(f&quot;  Mes {i}: {val:.0f} unidades&quot;)
+    
+    <span class="com"># Normalizar</span>
+    scaler = MinMaxScaler()
+    scaler.fit(ultimos_6.reshape(-1, 1))
+    datos_norm = scaler.transform(ultimos_6.reshape(-1, 1))
+    
+    <span class="com"># Cargar modelo</span>
+    modelo = tf.keras.models.load_model(f&<span class="com">#x27;modelos_A/bodega_{bodega_seleccionada}/best_model.keras&#x27;)</span>
+    
+    <span class="com"># Predecir</span>
+    entrada = datos_norm.reshape(1, 6, 1)
+    pred_norm = modelo.predict(entrada, verbose=0)
+    pred_real = scaler.inverse_transform(pred_norm.reshape(-1, 1))[0][0]
+    
+    print(f&quot;\n&gt;&gt;&gt; PREDICCION REAL PROXIMO MES: {pred_real:.0f} unidades &lt;&lt;&lt;&quot;)
+    print(f&quot;{&<span class="com">#x27;=&#x27;*60}&quot;)</span>
+else:
+    print(&quot;No hay suficientes datos historicos para esta bodega&quot;)
+
+<span class="com"># ============================================</span>
+<span class="com"># PASO 3: Predicciones para TODAS las bodegas de un producto</span>
+<span class="com"># ============================================</span>
+
+print(&quot;\n&quot; + &quot;=&quot;*60)
+print(&quot;PREDICCIONES PARA TODAS LAS BODEGAS - Producto P9933&quot;)
+print(&quot;=&quot;*60)
+
+<span class="com"># Filtrar solo producto P9933</span>
+df_P9933 = df_long[df_long[&<span class="com">#x27;producto&#x27;] == &#x27;P9933&#x27;]</span>
+
+resultados_reales = []
+
+for bodega in df_P9933[&<span class="com">#x27;bodega&#x27;].unique():</span>
+    datos_bodega = df_P9933[df_P9933[&<span class="com">#x27;bodega&#x27;] == bodega]</span>
+    
+    if len(datos_bodega) &gt;= 6:
+        ultimos_6 = datos_bodega[&<span class="com">#x27;stock_solicitado&#x27;].tail(6).values</span>
+        
+        <span class="com"># Normalizar</span>
+        scaler = MinMaxScaler()
+        scaler.fit(ultimos_6.reshape(-1, 1))
+        datos_norm = scaler.transform(ultimos_6.reshape(-1, 1))
+        
+        <span class="com"># Cargar modelo</span>
+        try:
+            modelo = tf.keras.models.load_model(f&<span class="com">#x27;modelos_A/bodega_{bodega}/best_model.keras&#x27;)</span>
+            
+            <span class="com"># Predecir</span>
+            entrada = datos_norm.reshape(1, 6, 1)
+            pred_norm = modelo.predict(entrada, verbose=0)
+            pred_real = scaler.inverse_transform(pred_norm.reshape(-1, 1))[0][0]
+            
+            resultados_reales.append({
+                &<span class="com">#x27;bodega&#x27;: bodega,</span>
+                &<span class="com">#x27;ult_mes_real&#x27;: ultimos_6[-1],</span>
+                &<span class="com">#x27;prediccion&#x27;: pred_real,</span>
+                &<span class="com">#x27;cambio&#x27;: pred_real - ultimos_6[-1]</span>
+            })
+        except:
+            pass
+
+<span class="com"># Mostrar resultados</span>
+df_resultados = pd.DataFrame(resultados_reales)
+df_resultados = df_resultados.sort_values(&<span class="com">#x27;prediccion&#x27;, ascending=False)</span>
+
+print(&quot;\nTop 10 bodegas con MAYOR demanda predicha:&quot;)
+print(df_resultados.head(10).to_string(index=False))
+
+print(&quot;\n&quot; + &quot;=&quot;*60)
+print(&quot;ESTOS SON TUS DATOS REALES, NO UN DEMO&quot;)
+print(&quot;=&quot;*60)
+</code></pre>
+                </div>
+            </div>
+            <div class="page-break"></div>
+            <div id="script-4">
+                <h2>4. Ejemplo de Uso</h2>
+                <p class="desc">Demo simplificada de cómo cargar un modelo y hacer una inferencia.</p>
+                <p style="font-family: monospace; background: #eee; padding: 5px; display: inline-block;">Archivo: ejemplo_uso_modelo.py</p>
+                
+                <div class="code-container">
+                    <pre><code>&quot;&quot;&quot;
+EJEMPLO DE USO DE LOS MODELOS ENTRENADOS
+==========================================
+Este script muestra cómo cargar y usar los modelos LSTM entrenados
+para hacer predicciones de demanda de inventario.
+&quot;&quot;&quot;
+
+import tensorflow as tf
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+
+<span class="com"># ==================================================</span>
+<span class="com"># EJEMPLO 1: PREDICCIÓN PARA PRODUCTO P9933 (A)</span>
+<span class="com"># ==================================================</span>
+
+print(&quot;=&quot; * 60)
+print(&quot;EJEMPLO 1: Predicción para Producto P9933 - Bodega BDG-19GNI&quot;)
+print(&quot;=&quot; * 60)
+
+<span class="com"># 1. Cargar el modelo entrenado</span>
+modelo_A = tf.keras.models.load_model(&<span class="com">#x27;modelos_A/bodega_BDG-19GNI/best_model.keras&#x27;)</span>
+print(&quot;\n[OK] Modelo cargado exitosamente&quot;)
+print(f&quot;  Arquitectura: {modelo_A.summary()}\n&quot;)
+
+<span class="com"># 2. Datos de ejemplo: últimos 6 meses de demanda real</span>
+<span class="com"># (En producción, estos vendrían de tu base de datos)</span>
+demanda_historica = np.array([150, 180, 200, 175, 190, 220])  <span class="com"># Ejemplo en unidades</span>
+print(&quot;Demanda histórica (últimos 6 meses):&quot;)
+print(f&quot;  {demanda_historica}&quot;)
+
+<span class="com"># 3. Normalizar los datos (el modelo fue entrenado con datos normalizados)</span>
+scaler = MinMaxScaler()
+<span class="com"># Necesitamos entrenar el scaler con datos históricos completos de esa bodega</span>
+<span class="com"># Por simplicidad, aquí uso min-max de estos 6 meses</span>
+scaler.fit(demanda_historica.reshape(-1, 1))
+demanda_normalizada = scaler.transform(demanda_historica.reshape(-1, 1))
+
+<span class="com"># 4. Preparar formato de entrada: (1, 6, 1)</span>
+<span class="com">#    1 muestra, 6 timesteps (meses), 1 feature (demanda)</span>
+entrada = demanda_normalizada.reshape(1, 6, 1)
+print(f&quot;\nDatos normalizados preparados con forma: {entrada.shape}&quot;)
+
+<span class="com"># 5. Hacer la predicción</span>
+prediccion_norm = modelo_A.predict(entrada, verbose=0)
+print(f&quot;Predicción normalizada: {prediccion_norm[0][0]:.4f}&quot;)
+
+<span class="com"># 6. Desnormalizar para obtener la demanda real predicha</span>
+prediccion_real = scaler.inverse_transform(prediccion_norm.reshape(-1, 1))[0][0]
+print(f&quot;\n&gt;&gt;&gt; PREDICCION PROXIMO MES: {prediccion_real:.0f} unidades&quot;)
+
+<span class="com"># ==================================================</span>
+<span class="com"># EJEMPLO 2: PREDICCIÓN PARA PRODUCTO P2417 (B)</span>
+<span class="com"># ==================================================</span>
+
+print(&quot;\n&quot; + &quot;=&quot; * 60)
+print(&quot;EJEMPLO 2: Predicción para Producto P2417 - Bodega BDG-19GNI&quot;)
+print(&quot;=&quot; * 60)
+
+<span class="com"># 1. Cargar modelo del producto B</span>
+modelo_B = tf.keras.models.load_model(&<span class="com">#x27;modelos_B/bodega_BDG-19GNI/best_model.keras&#x27;)</span>
+print(&quot;\n[OK] Modelo cargado exitosamente&quot;)
+
+<span class="com"># 2. Datos históricos diferentes</span>
+demanda_historica_B = np.array([80, 95, 110, 88, 100, 115])
+print(&quot;Demanda histórica (últimos 6 meses):&quot;)
+print(f&quot;  {demanda_historica_B}&quot;)
+
+<span class="com"># 3. Normalizar</span>
+scaler_B = MinMaxScaler()
+scaler_B.fit(demanda_historica_B.reshape(-1, 1))
+demanda_normalizada_B = scaler_B.transform(demanda_historica_B.reshape(-1, 1))
+
+<span class="com"># 4. Preparar entrada</span>
+entrada_B = demanda_normalizada_B.reshape(1, 6, 1)
+
+<span class="com"># 5. Predecir</span>
+prediccion_norm_B = modelo_B.predict(entrada_B, verbose=0)
+
+<span class="com"># 6. Desnormalizar</span>
+prediccion_real_B = scaler_B.inverse_transform(prediccion_norm_B.reshape(-1, 1))[0][0]
+print(f&quot;\n&gt;&gt;&gt; PREDICCION PROXIMO MES: {prediccion_real_B:.0f} unidades&quot;)
+
+<span class="com"># ==================================================</span>
+<span class="com"># EJEMPLO 3: PREDICCIÓN PARA TODAS LAS BODEGAS</span>
+<span class="com"># ==================================================</span>
+
+print(&quot;\n&quot; + &quot;=&quot; * 60)
+print(&quot;EJEMPLO 3: Predicciones para todas las bodegas del Producto A&quot;)
+print(&quot;=&quot; * 60)
+
+import os
+
+<span class="com"># Listar todas las bodegas disponibles</span>
+bodegas_A = os.listdir(&<span class="com">#x27;modelos_A&#x27;)</span>
+print(f&quot;\nBodegas disponibles: {len(bodegas_A)}&quot;)
+
+<span class="com"># Hacer predicción para las primeras 5 bodegas (ejemplo)</span>
+resultados = []
+
+for bodega in bodegas_A[:5]:
+    modelo_path = f&<span class="com">#x27;modelos_A/{bodega}/best_model.keras&#x27;</span>
+    modelo = tf.keras.models.load_model(modelo_path)
+    
+    <span class="com"># Usar datos de ejemplo (en producción, usar datos reales por bodega)</span>
+    datos_ejemplo = np.array([100, 120, 110, 130, 125, 140])
+    scaler_temp = MinMaxScaler()
+    scaler_temp.fit(datos_ejemplo.reshape(-1, 1))
+    datos_norm = scaler_temp.transform(datos_ejemplo.reshape(-1, 1))
+    
+    pred_norm = modelo.predict(datos_norm.reshape(1, 6, 1), verbose=0)
+    pred_real = scaler_temp.inverse_transform(pred_norm.reshape(-1, 1))[0][0]
+    
+    resultados.append({
+        &<span class="com">#x27;bodega&#x27;: bodega.replace(&#x27;bodega_&#x27;, &#x27;&#x27;),</span>
+        &<span class="com">#x27;prediccion&#x27;: pred_real</span>
+    })
+
+<span class="com"># Mostrar resultados</span>
+df_resultados = pd.DataFrame(resultados)
+print(&quot;\nPredicciones por bodega:&quot;)
+print(df_resultados.to_string(index=False))
+
+<span class="com"># ==================================================</span>
+<span class="com"># MÉTRICAS DE RENDIMIENTO</span>
+<span class="com"># ==================================================</span>
+
+print(&quot;\n&quot; + &quot;=&quot; * 60)
+print(&quot;MÉTRICAS DE RENDIMIENTO DE LOS MODELOS&quot;)
+print(&quot;=&quot; * 60)
+
+<span class="com"># Leer métricas guardadas</span>
+metricas_A = pd.read_csv(&<span class="com">#x27;mejores_modelos_A.csv&#x27;)</span>
+metricas_B = pd.read_csv(&<span class="com">#x27;mejores_modelos_B.csv&#x27;)</span>
+
+print(&quot;\nTop 5 modelos con MENOR error (MAE) - Producto A:&quot;)
+print(metricas_A.nsmallest(5, &<span class="com">#x27;mae&#x27;)[[&#x27;bodega&#x27;, &#x27;mae&#x27;, &#x27;loss&#x27;]])</span>
+
+print(&quot;\nTop 5 modelos con MENOR error (MAE) - Producto B:&quot;)
+print(metricas_B.nsmallest(5, &<span class="com">#x27;mae&#x27;)[[&#x27;bodega&#x27;, &#x27;mae&#x27;, &#x27;loss&#x27;]])</span>
+
+print(&quot;\n&quot; + &quot;=&quot; * 60)
+print(&quot;[OK] Ejemplos completados&quot;)
+print(&quot;=&quot; * 60)
+</code></pre>
+                </div>
+            </div>
+            <div class="page-break"></div>
+            <div id="script-5">
+                <h2>5. Predicción Simple</h2>
+                <p class="desc">Versión minimalista para pruebas rápidas.</p>
+                <p style="font-family: monospace; background: #eee; padding: 5px; display: inline-block;">Archivo: prediccion_simple_real.py</p>
+                
+                <div class="code-container">
+                    <pre><code><span class="com"># -*- coding: utf-8 -*-</span>
+import tensorflow as tf
+import numpy as np
+import pandas as pd
+from sklearn.preprocessing import MinMaxScaler
+import warnings
+warnings.filterwarnings(&<span class="com">#x27;ignore&#x27;)</span>
+
+print(&quot;Cargando datos reales...&quot;)
+
+<span class="com"># Cargar datos del Excel</span>
+url = &quot;https://github.com/OscarT231/Proyecto-deep-/raw/refs/heads/main/Base_filtrada.xlsx&quot;
+df = pd.read_excel(url)
+
+<span class="com"># Preparar datos</span>
+df.columns = df.columns.astype(str).str.strip()
+columnas = [
+    &quot;bodega&quot;, &quot;producto&quot;, &quot;calificacion_abc&quot;,
+    &quot;2024-09-01 00:00:00&quot;,&quot;2024-10-01 00:00:00&quot;,&quot;2024-11-01 00:00:00&quot;,&quot;2024-12-01 00:00:00&quot;,
+    &quot;2025-01-01 00:00:00&quot;,&quot;2025-02-01 00:00:00&quot;,&quot;2025-03-01 00:00:00&quot;,&quot;2025-04-01 00:00:00&quot;,
+    &quot;2025-05-01 00:00:00&quot;,&quot;2025-06-01 00:00:00&quot;,&quot;2025-07-01 00:00:00&quot;,&quot;2025-08-01 00:00:00&quot;
+]
+
+df = df[[col for col in columnas if col in df.columns]].copy()
+df = df[~df[&quot;calificacion_abc&quot;].isin([&quot;O&quot;, &quot;N&quot;])].copy()
+
+<span class="com"># Formato long</span>
+id_cols = [&quot;bodega&quot;, &quot;producto&quot;, &quot;calificacion_abc&quot;]
+date_cols = [c for c in df.columns if c not in id_cols]
+df_long = df.melt(id_vars=id_cols, value_vars=date_cols, var_name=&quot;fecha&quot;, value_name=&quot;stock&quot;)
+df_long[&<span class="com">#x27;fecha&#x27;] = pd.to_datetime(df_long[&#x27;fecha&#x27;])</span>
+df_long = df_long.sort_values([&quot;bodega&quot;, &quot;producto&quot;, &quot;fecha&quot;])
+
+print(&quot;OK - Datos cargados&quot;)
+print(f&quot;Total registros: {len(df_long)}&quot;)
+
+<span class="com"># Prediccion para bodega especifica</span>
+bodega = &quot;BDG-19GNI&quot;
+producto = &quot;P9933&quot;
+
+print(&quot;\n&quot; + &quot;=&quot;*60)
+print(f&quot;PREDICCION REAL: {producto} - {bodega}&quot;)
+print(&quot;=&quot;*60)
+
+datos = df_long[(df_long[&<span class="com">#x27;bodega&#x27;] == bodega) &amp; (df_long[&#x27;producto&#x27;] == producto)].copy()</span>
+
+if len(datos) &gt;= 6:
+    ultimos_6 = datos[&<span class="com">#x27;stock&#x27;].tail(6).values</span>
+    
+    print(&quot;\nDemanda historica REAL:&quot;)
+    for i, val in enumerate(ultimos_6, 1):
+        print(f&quot;  Mes {i}: {int(val)} unidades&quot;)
+    
+    <span class="com"># Normalizar y predecir</span>
+    scaler = MinMaxScaler()
+    scaler.fit(ultimos_6.reshape(-1, 1))
+    norm = scaler.transform(ultimos_6.reshape(-1, 1))
+    
+    modelo = tf.keras.models.load_model(f&<span class="com">#x27;modelos_A/bodega_{bodega}/best_model.keras&#x27;)</span>
+    pred = modelo.predict(norm.reshape(1, 6, 1), verbose=0)
+    pred_real = scaler.inverse_transform(pred.reshape(-1, 1))[0][0]
+    
+    print(f&quot;\n&gt;&gt;&gt; PREDICCION REAL: {int(pred_real)} unidades &lt;&lt;&lt;&quot;)
+    print(f&quot;Cambio vs ultimo mes: {int(pred_real - ultimos_6[-1]):+d} unidades&quot;)
+
+<span class="com"># Top bodegas</span>
+print(&quot;\n&quot; + &quot;=&quot;*60)
+print(&quot;TOP 5 BODEGAS CON MAYOR DEMANDA PREDICHA - Producto P9933&quot;)
+print(&quot;=&quot;*60)
+
+df_P9933 = df_long[df_long[&<span class="com">#x27;producto&#x27;] == &#x27;P9933&#x27;]</span>
+resultados = []
+
+for bod in df_P9933[&<span class="com">#x27;bodega&#x27;].unique()[:10]:</span>
+    d = df_P9933[df_P9933[&<span class="com">#x27;bodega&#x27;] == bod]</span>
+    if len(d) &gt;= 6:
+        try:
+            u6 = d[&<span class="com">#x27;stock&#x27;].tail(6).values</span>
+            sc = MinMaxScaler()
+            sc.fit(u6.reshape(-1, 1))
+            n = sc.transform(u6.reshape(-1, 1))
+            m = tf.keras.models.load_model(f&<span class="com">#x27;modelos_A/bodega_{bod}/best_model.keras&#x27;)</span>
+            p = m.predict(n.reshape(1, 6, 1), verbose=0)
+            pr = sc.inverse_transform(p.reshape(-1, 1))[0][0]
+            resultados.append({&<span class="com">#x27;bodega&#x27;: bod, &#x27;actual&#x27;: int(u6[-1]), &#x27;prediccion&#x27;: int(pr)})</span>
+        except:
+            pass
+
+df_res = pd.DataFrame(resultados).sort_values(&<span class="com">#x27;prediccion&#x27;, ascending=False)</span>
+print(&quot;\n&quot;, df_res.head().to_string(index=False))
+
+print(&quot;\n&quot; + &quot;=&quot;*60)
+print(&quot;DATOS 100% REALES DE TU EXCEL&quot;)
+print(&quot;=&quot;*60)
+</code></pre>
+                </div>
+            </div>
+            
+        <div class="footer">
+            Documento generado automáticamente el 23/11/2025 06:59
+        </div>
+    </body>
+    </html>
+    

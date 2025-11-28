@@ -1,0 +1,9 @@
+gradio
+pandas
+numpy
+tensorflow-cpu
+scikit-learn
+matplotlib
+seaborn
+plotly
+openpyxl

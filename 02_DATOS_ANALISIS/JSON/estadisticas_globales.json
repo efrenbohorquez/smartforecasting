@@ -1,0 +1,24 @@
+{
+  "producto_A": {
+    "bodegas": 28,
+    "demanda_total_feb": 1639.0,
+    "demanda_total_mar_pred": 1331.843505859375,
+    "demanda_promedio": 52.91666666666665,
+    "crecimiento_total": -307.156494140625,
+    "mae_promedio": 0.2816028827116627
+  },
+  "producto_B": {
+    "bodegas": 24,
+    "demanda_total_feb": 529.0,
+    "demanda_total_mar_pred": 334.1501770019531,
+    "demanda_promedio": 18.881944444444446,
+    "crecimiento_total": -194.84982299804688,
+    "mae_promedio": 0.23921513691069166
+  },
+  "global": {
+    "total_bodegas": 52,
+    "total_modelos": 52,
+    "registros_analizados": 130092,
+    "demanda_total_predicha": 1665.99365234375
+  }
+}
