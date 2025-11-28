@@ -20,7 +20,7 @@ def ejecutar_demo(producto, bodega):
 STATS = load_global_stats()
 
 def create_demo():
-    with gr.Blocks(title="Sistema de Predicción de Demanda LSTM", theme=gr.themes.Soft()) as demo:
+    with gr.Blocks(title="Sistema de Predicción de Demanda LSTM") as demo:
         gr.Markdown("""
         # 🧠 Sistema de Predicción de Demanda con LSTM
         **Proyecto de Maestría en Deep Learning**
