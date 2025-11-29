@@ -8,3 +8,5 @@ seaborn
 plotly
 openpyxl
 
+
+huggingface-hub==0.22.2
